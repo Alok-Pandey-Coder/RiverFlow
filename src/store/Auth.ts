@@ -61,10 +61,10 @@ export const useAuthStore = create<IAuthStore>()(
           const [user, {jwt}] = await Promise.all([
             account.get<UserPrefs>(),
             account.createJWT()
-          ]),
+          ]);
 
           if(!user.prefs?.reputation) await account.updatePrefs<UserPrefs>(
-            reputation: 0
+            {reputation: 0}
           )
           set({session, user, jwt})
           return {success: true}
