@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const authorId = target.authorId;
     const authorPrefs = await users.getPrefs<UserPrefs>(authorId);
 
-    let newVoteDoc: typeof existing = existing;
+    let newVoteDoc: typeof existing | null = existing;
     let reputationDelta = 0;
 
     const applyDelta = (status: VoteStatus, direction: "add" | "remove") => {
