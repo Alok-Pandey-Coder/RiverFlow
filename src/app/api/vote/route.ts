@@ -2,7 +2,7 @@ import { voteCollection, db, questionCollection, answerCollection } from "@/mode
 import { databases, users } from "@/models/server/config";
 import { UserPrefs } from "@/store/Auth";
 import { NextRequest, NextResponse } from "next/server";
-import { ID, Query } from "node-appwrite";
+import { ID, Query, type Models } from "node-appwrite";
 
 type VoteStatus = "upvoted" | "downvoted";
 
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const authorId = target.authorId;
     const authorPrefs = await users.getPrefs<UserPrefs>(authorId);
 
-    let newVoteDoc: typeof existing | null = existing;
+    let newVoteDoc: Models.Document | null = existing;
     let reputationDelta = 0;
 
     const applyDelta = (status: VoteStatus, direction: "add" | "remove") => {
