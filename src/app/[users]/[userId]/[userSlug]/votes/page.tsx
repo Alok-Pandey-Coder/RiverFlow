@@ -7,6 +7,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Query } from "node-appwrite";
 
+type VoteQuestion = {
+    $id: string;
+    title: string;
+};
+
 const Page = async ({
     params,
     searchParams,
@@ -33,25 +38,28 @@ const Page = async ({
 
     const resolveVoteTarget = async (vote: (typeof votes.documents)[number]) => {
         if (vote.type === "question") {
-            const question = await databases.getDocument(db, questionCollection, vote.typeId, [
+            const question = (await databases.getDocument(db, questionCollection, vote.typeId, [
                 Query.select(["title"]),
-            ]);
+            ])) as unknown as VoteQuestion;
 
             return {
                 ...vote,
                 question,
-            } as (typeof votes.documents)[number] & { question: { $id: string; title: string } };
+            };
         }
 
         const answer = await databases.getDocument(db, answerCollection, vote.typeId);
-        const questionOfTypeAnswer = await databases.getDocument(db, questionCollection, answer.questionId, [
-            Query.select(["title"]),
-        ]);
+        const questionOfTypeAnswer = (await databases.getDocument(
+            db,
+            questionCollection,
+            answer.questionId,
+            [Query.select(["title"])]
+        )) as unknown as VoteQuestion;
 
         return {
             ...vote,
             question: questionOfTypeAnswer,
-        } as (typeof votes.documents)[number] & { question: { $id: string; title: string } };
+        };
     };
 
     const settledVotes = await Promise.allSettled(votes.documents.map(resolveVoteTarget));
@@ -62,7 +70,7 @@ const Page = async ({
     return (
         <div className="px-4">
             <div className="mb-4 flex justify-between">
-                <p>{safeVotes.length} votes</p>
+                <p>{votes.total} votes</p>
                 <ul className="flex gap-1">
                     <li>
                         <Link
@@ -123,7 +131,7 @@ const Page = async ({
                     </div>
                 ))}
             </div>
-            <Pagination total={safeVotes.length} limit={25} />
+            <Pagination total={votes.total} limit={25} />
         </div>
     );
 };
