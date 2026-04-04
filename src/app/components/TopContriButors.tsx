@@ -1,13 +1,12 @@
 import { cn } from "@/lib/utils";
 
-import { AnimatedList } from "@/components/magicui/animated-list";
 import { users } from "@/models/server/config";
 import { Models, Query } from "node-appwrite";
 import { UserPrefs } from "@/store/Auth";
 import convertDateToRelativeTime from "@/utils/relativeTime";
 import { avatars } from "@/models/client/config";
 
-const Notification = ({ user }: { user: Models.User<UserPrefs> }) => {
+const Notification = ({ user, rank }: { user: Models.User<UserPrefs>; rank: number }) => {
     return (
         <figure
             className={cn(
@@ -21,6 +20,9 @@ const Notification = ({ user }: { user: Models.User<UserPrefs> }) => {
             )}
         >
             <div className="flex flex-row items-center gap-3">
+                <span className="w-8 shrink-0 text-center text-sm font-semibold text-orange-300">
+                    #{rank}
+                </span>
                 <picture>
                     <img
                         src={avatars.getInitials(user.name, 40, 40)}
@@ -49,15 +51,26 @@ const Notification = ({ user }: { user: Models.User<UserPrefs> }) => {
 
 export default async function TopContributers() {
     try {
-        const topUsers = await users.list<UserPrefs>([Query.limit(10)]);
+        const usersList = await users.list<UserPrefs>([Query.limit(100)]);
+
+        const topUsers = usersList.users
+            .slice()
+            .sort((a, b) => {
+                const reputationDiff = Number(b.prefs?.reputation || 0) - Number(a.prefs?.reputation || 0);
+                if (reputationDiff !== 0) return reputationDiff;
+
+                // Keep tie ordering deterministic so ranks don't jump between refreshes.
+                return a.name.localeCompare(b.name);
+            })
+            .slice(0, 10);
 
         return (
             <div className="bg-background relative flex max-h-100 min-h-100 w-full max-w-lg flex-col overflow-hidden rounded-lg p-6 shadow-lg">
-                <AnimatedList>
-                    {topUsers.users.map(user => (
-                        <Notification user={user} key={user.$id} />
+                <div className="space-y-3 overflow-y-auto pr-1">
+                    {topUsers.map((user, index) => (
+                        <Notification user={user} rank={index + 1} key={user.$id} />
                     ))}
-                </AnimatedList>
+                </div>
             </div>
         );
     } catch (error) {
