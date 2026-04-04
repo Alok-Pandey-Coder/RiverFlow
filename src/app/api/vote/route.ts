@@ -5,21 +5,38 @@ import { NextRequest, NextResponse } from "next/server";
 import { ID, Query, type Models } from "node-appwrite";
 
 type VoteStatus = "upvoted" | "downvoted";
+type VoteType = "question" | "answer";
+type VoteDocument = Models.Document & {
+  type: VoteType;
+  typeId: string;
+  voteStatus: VoteStatus;
+  votedById: string;
+};
+
+type VotePayload = {
+  votedById: string;
+  voteStatus: VoteStatus;
+  type: VoteType;
+  typeId: string;
+};
 
 export async function POST(request: NextRequest) {
   try {
-    const { votedById, voteStatus, type, typeId } = await request.json();
+    const { votedById, voteStatus, type, typeId } = (await request.json()) as Partial<VotePayload>;
 
     if (!votedById || !voteStatus || !type || !typeId) {
       return NextResponse.json({ error: "Missing vote payload" }, { status: 400 });
     }
 
-    if (!["question", "answer"].includes(type) || !["upvoted", "downvoted"].includes(voteStatus)) {
+    if (
+      (type !== "question" && type !== "answer") ||
+      (voteStatus !== "upvoted" && voteStatus !== "downvoted")
+    ) {
       return NextResponse.json({ error: "Invalid vote payload" }, { status: 400 });
     }
 
     // find existing vote from this user on this target
-    const existingList = await databases.listDocuments(db, voteCollection, [
+    const existingList = await databases.listDocuments<VoteDocument>(db, voteCollection, [
       Query.equal("type", type),
       Query.equal("typeId", typeId),
       Query.equal("votedById", votedById),
@@ -38,7 +55,7 @@ export async function POST(request: NextRequest) {
     const authorId = target.authorId;
     const authorPrefs = await users.getPrefs<UserPrefs>(authorId);
 
-    let newVoteDoc: Models.Document | null = existing;
+    let newVoteDoc: VoteDocument | null = existing;
     let reputationDelta = 0;
 
     const applyDelta = (status: VoteStatus, direction: "add" | "remove") => {
@@ -49,10 +66,10 @@ export async function POST(request: NextRequest) {
     // toggle logic
     if (existing) {
       await databases.deleteDocument(db, voteCollection, existing.$id);
-      applyDelta(existing.voteStatus as VoteStatus, "remove");
+      applyDelta(existing.voteStatus, "remove");
 
       if (existing.voteStatus !== voteStatus) {
-        newVoteDoc = await databases.createDocument(db, voteCollection, ID.unique(), {
+        newVoteDoc = await databases.createDocument<VoteDocument>(db, voteCollection, ID.unique(), {
           type,
           typeId,
           voteStatus,
@@ -63,7 +80,7 @@ export async function POST(request: NextRequest) {
         newVoteDoc = null;
       }
     } else {
-      newVoteDoc = await databases.createDocument(db, voteCollection, ID.unique(), {
+      newVoteDoc = await databases.createDocument<VoteDocument>(db, voteCollection, ID.unique(), {
         type,
         typeId,
         voteStatus,

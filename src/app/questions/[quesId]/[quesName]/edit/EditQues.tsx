@@ -3,11 +3,11 @@
 import QuestionForm from "@/components/QuestionForm";
 import { useAuthStore } from "@/store/Auth";
 import slugify from "@/utils/slugify";
-import { Models } from "appwrite";
 import { useRouter } from "next/navigation";
 import React from "react";
+import { type EditableQuestion } from "@/components/QuestionForm";
 
-const EditQues = ({ question }: { question: Models.Document }) => {
+const EditQues = ({ question }: { question: EditableQuestion }) => {
     const { user } = useAuthStore();
     const router = useRouter();
 

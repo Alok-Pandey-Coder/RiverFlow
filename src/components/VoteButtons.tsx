@@ -5,9 +5,19 @@ import { db, voteCollection } from "@/models/name";
 import { useAuthStore } from "@/store/Auth";
 import { cn } from "@/lib/utils";
 import { IconCaretUpFilled, IconCaretDownFilled } from "@tabler/icons-react";
-import { ID, Models, Query } from "appwrite";
+import { Query } from "appwrite";
 import { useRouter } from "next/navigation";
 import React from "react";
+
+type VoteStatus = "upvoted" | "downvoted";
+
+type VoteSummary = {
+    total: number;
+};
+
+type VotedDocument = {
+    voteStatus: VoteStatus;
+};
 
 const VoteButtons = ({
     type,
@@ -18,12 +28,22 @@ const VoteButtons = ({
 }: {
     type: "question" | "answer";
     id: string;
-    upvotes: Models.DocumentList<Models.Document>;
-    downvotes: Models.DocumentList<Models.Document>;
+    upvotes: VoteSummary;
+    downvotes: VoteSummary;
     className?: string;
 }) => {
-    const [votedDocument, setVotedDocument] = React.useState<Models.Document | null>(); // undefined means not fetched yet
+    const [votedDocument, setVotedDocument] = React.useState<VotedDocument | null>(); // undefined means not fetched yet
     const [voteResult, setVoteResult] = React.useState<number>(upvotes.total - downvotes.total);
+
+    const toVotedDocument = (value: any): VotedDocument | null => {
+        if (!value) return null;
+
+        if (value.voteStatus === "upvoted" || value.voteStatus === "downvoted") {
+            return { voteStatus: value.voteStatus };
+        }
+
+        return null;
+    };
 
     const { user } = useAuthStore();
     const router = useRouter();
@@ -36,7 +56,7 @@ const VoteButtons = ({
                     Query.equal("typeId", id),
                     Query.equal("votedById", user.$id),
                 ]);
-                setVotedDocument(() => response.documents[0] || null);
+                setVotedDocument(() => toVotedDocument(response.documents[0]));
             }
         })();
     }, [user, id, type]);
@@ -62,7 +82,7 @@ const VoteButtons = ({
             if (!response.ok) throw data;
 
             setVoteResult(() => data.data.voteResult);
-            setVotedDocument(() => data.data.document);
+            setVotedDocument(() => toVotedDocument(data.data.document));
         } catch (error: any) {
             window.alert(error?.message || "Something went wrong");
         }
@@ -89,7 +109,7 @@ const VoteButtons = ({
             if (!response.ok) throw data;
 
             setVoteResult(() => data.data.voteResult);
-            setVotedDocument(() => data.data.document);
+            setVotedDocument(() => toVotedDocument(data.data.document));
         } catch (error: any) {
             window.alert(error?.message || "Something went wrong");
         }

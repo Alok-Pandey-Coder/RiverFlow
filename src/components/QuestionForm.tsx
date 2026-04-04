@@ -8,13 +8,22 @@ import { useAuthStore } from "@/store/Auth";
 import { cn } from "@/lib/utils";
 import slugify from "@/utils/slugify";
 import { IconX } from "@tabler/icons-react";
-import { Models, ID, Permission, Role } from "appwrite";
+import { ID, Permission, Role } from "appwrite";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React from "react";
 import { databases, storage } from "@/models/client/config";
 import { db, questionAttachmentBucket, questionCollection } from "@/models/name";
 import { Confetti } from "@/components/magicui/confetti";
+
+export type EditableQuestion = {
+    $id: string;
+    title: string;
+    content: string;
+    attachmentId: string;
+    authorId: string;
+    tags: string[];
+};
 
 const LabelInputContainer = ({
     children,
@@ -41,7 +50,7 @@ const LabelInputContainer = ({
  * ![INFO]: for buttons, refer to https://ui.aceternity.com/components/tailwindcss-buttons
  * ******************************************************************************
  */
-const QuestionForm = ({ question }: { question?: Models.Document }) => {
+const QuestionForm = ({ question }: { question?: EditableQuestion }) => {
     const { user } = useAuthStore();
     const [tag, setTag] = React.useState("");
     const router = useRouter();

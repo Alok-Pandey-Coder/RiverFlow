@@ -7,9 +7,29 @@ import { cn } from "@/lib/utils"
 import convertDateToRelativeTime from "@/utils/relativeTime";
 import slugify from "@/utils/slugify";
 import { IconTrash } from "@tabler/icons-react";
-import { ID, Models } from "appwrite";
+import { ID } from "appwrite";
 import Link from "next/link";
 import React from "react";
+
+type CommentAuthor = {
+    $id: string;
+    name: string;
+    reputation?: number;
+} | null;
+
+type CommentDocument = {
+    $id: string;
+    content: string;
+    authorId: string;
+    author: CommentAuthor;
+    $createdAt: string;
+    relativeCreatedAt?: string;
+};
+
+type CommentList = {
+    total: number;
+    documents: CommentDocument[];
+};
 
 const Comments = ({
     comments: _comments,
@@ -17,7 +37,7 @@ const Comments = ({
     typeId,
     className,
 }: {
-    comments: Models.DocumentList<Models.Document>;
+    comments: CommentList;
     type: "question" | "answer";
     typeId: string;
     className?: string;
@@ -41,7 +61,20 @@ const Comments = ({
             setNewComment(() => "");
             setComments(prev => ({
                 total: prev.total + 1,
-                documents: [{ ...response, author: user }, ...prev.documents],
+                documents: [
+                    {
+                        $id: response.$id,
+                        content: response.content,
+                        authorId: response.authorId,
+                        author: {
+                            $id: user.$id,
+                            name: user.name,
+                            reputation: Number((user as any)?.prefs?.reputation || 0),
+                        },
+                        $createdAt: response.$createdAt,
+                    },
+                    ...prev.documents,
+                ],
             }));
         } catch (error: any) {
             window.alert(error?.message || "Error creating comment");
@@ -80,7 +113,7 @@ const Comments = ({
                                 <span className="text-orange-300">Unknown</span>
                             )}{" "}
                             <span className="opacity-60">
-                                {(comment as any).relativeCreatedAt ??
+                                {comment.relativeCreatedAt ??
                                     convertDateToRelativeTime(new Date(comment.$createdAt))}
                             </span>
                         </p>

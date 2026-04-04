@@ -1,6 +1,5 @@
 "use client";
 
-import { ID, Models } from "appwrite";
 import React from "react";
 import VoteButtons from "./VoteButtons";
 import { useAuthStore } from "@/store/Auth";
@@ -12,11 +11,54 @@ import slugify from "@/utils/slugify";
 import Link from "next/link";
 import { IconTrash } from "@tabler/icons-react";
 
+type AnswerAuthor = {
+    $id: string;
+    name: string;
+    reputation: number;
+};
+
+type CommentAuthor = {
+    $id: string;
+    name: string;
+    reputation?: number;
+} | null;
+
+type CommentDocument = {
+    $id: string;
+    content: string;
+    authorId: string;
+    author: CommentAuthor;
+    $createdAt: string;
+    relativeCreatedAt?: string;
+};
+
+type VoteSummary = {
+    total: number;
+};
+
+type AnswerDocument = {
+    $id: string;
+    content: string;
+    authorId: string;
+    author: AnswerAuthor;
+    comments: {
+        total: number;
+        documents: CommentDocument[];
+    };
+    upvotesDocuments: VoteSummary;
+    downvotesDocuments: VoteSummary;
+};
+
+type AnswerList = {
+    total: number;
+    documents: AnswerDocument[];
+};
+
 const Answers = ({
     answers: _answers,
     questionId,
 }: {
-    answers: Models.DocumentList<Models.Document>;
+    answers: AnswerList;
     questionId: string;
 }) => {
     const [answers, setAnswers] = React.useState(_answers);
@@ -46,10 +88,16 @@ const Answers = ({
                 total: prev.total + 1,
                 documents: [
                     {
-                        ...data,
-                        author: user,
-                        upvotesDocuments: { documents: [], total: 0 },
-                        downvotesDocuments: { documents: [], total: 0 },
+                        $id: data.$id,
+                        content: data.content,
+                        authorId: data.authorId,
+                        author: {
+                            $id: user.$id,
+                            name: user.name,
+                            reputation: Number((user as any)?.prefs?.reputation || 0),
+                        },
+                        upvotesDocuments: { total: 0 },
+                        downvotesDocuments: { total: 0 },
                         comments: { documents: [], total: 0 },
                     },
                     ...prev.documents,
