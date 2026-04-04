@@ -5,6 +5,7 @@ import { Models, Query } from "node-appwrite";
 import { UserPrefs } from "@/store/Auth";
 import convertDateToRelativeTime from "@/utils/relativeTime";
 import { avatars } from "@/models/client/config";
+import { connection } from "next/server";
 
 const Notification = ({ user, rank }: { user: Models.User<UserPrefs>; rank: number }) => {
     return (
@@ -50,6 +51,9 @@ const Notification = ({ user, rank }: { user: Models.User<UserPrefs>; rank: numb
 };
 
 export default async function TopContributers() {
+    // Always compute rankings at request time so reputation updates are reflected immediately.
+    await connection();
+
     try {
         const usersList = await users.list<UserPrefs>([Query.limit(100)]);
 
